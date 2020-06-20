@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Git</title>
+  <meta figapp="git">
+
+  <!-- Bulma -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.2/css/bulma.min.css">
+
+  <!-- Bulma extensions -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"></script> -->
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/css/bulma-extensions.min.css" /> -->
+
+  <link href="style.css" rel="stylesheet" type="text/css" />
+
+
+  <script defer src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+  <!-- Notyf (another toast library): https://github.com/caroso1222/notyf  -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+
+  <script defer src="vueScript.js"></script>
+  <script defer src="script.js"></script>
+  <script defer src="figScript.js"></script>
+
+  <!-- Seg -->
+  <script>
+    !function () {
+      var analytics = window.analytics = window.analytics || []; if (!analytics.initialize) if (analytics.invoked) window.console && console.error && console.error("Segment snippet included twice."); else {
+        analytics.invoked = !0; analytics.methods = ["trackSubmit", "trackClick", "trackLink", "trackForm", "pageview", "identify", "reset", "group", "track", "ready", "alias", "debug", "page", "once", "off", "on", "addSourceMiddleware", "addIntegrationMiddleware", "setAnonymousId", "addDestinationMiddleware"]; analytics.factory = function (e) { return function () { var t = Array.prototype.slice.call(arguments); t.unshift(e); analytics.push(t); return analytics } }; for (var e = 0; e < analytics.methods.length; e++) { var t = analytics.methods[e]; analytics[t] = analytics.factory(t) } analytics.load = function (e, t) { var n = document.createElement("script"); n.type = "text/javascript"; n.async = !0; n.src = "https://cdn.segment.com/analytics.js/v1/" + e + "/analytics.min.js"; var a = document.getElementsByTagName("script")[0]; a.parentNode.insertBefore(n, a); analytics._loadOptions = t }; analytics.SNIPPET_VERSION = "4.1.0";
+        analytics.load("yANeZ9pw1Ic6VBZUx7MBshgnFu9M6IDB");
+        analytics.page();
+      }
+    }();
+  </script>
+
+</head>
+
+<body>
+  <div id="app">
+
+
+    <!-- This is the popup that shows the pushing results -->
+    <div class="modal" v-bind:class="{ 'is-active': isPushing }">
+      <div class="modal-background" @click="isPushing = !isPushing"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Git Push logs</p>
+          <button class="delete" aria-label="close" @click="isPushing = !isPushing"></button>
+        </header>
+        <section class="modal-card-body" style="padding: 0px !important;">
+          <div class="content">
+
+            <!-- Maybe replace this giant string with an array and then loop through the array to display -->
+
+            <div v-html="pushingLogs === '' ? 'Loading' : pushingLogs "
+              style="display: block; font-family: monospace; margin: 1em 0px; background-color: #1b1f230d; padding: 15px; font-size: 14px;">
+
+            </div>
+
+
+          </div>
+        </section>
+      </div>
+    </div>
+
+
+    <!-- Show this if there is an error -->
+
+
+    <div v-if="error">
+      It appear git does not exist in this directory. <a href="https://app.withfig.com/dir">Navigate to the right
+        directory</a><br><br>
+
+      <div v-html="errorMessage"
+        style="display: block; font-family: monospace; margin: 1em 0px; background-color: #1b1f230d; padding: 15px;">
+
+      </div>
+
+    </div>
+
+
+    <!-- If normal show this -->
+    <div v-if="!error">
+
+      <!-- <strong>Branch: </strong> -->
+
+      <div class="select" style="width: 100%; margin-bottom: 10px;">
+        <select tabindex="-1" v-model="selectedBranch" style="width: 100%;">
+          <option disabled="disabled" value="">Select a local branch</option>
+          <option v-for="(branch, idx) in branches">
+            {{branch}}
+          </option>
+        </select>
+      </div>
+
+
+      <!-- <strong>Remote Repo: </strong> -->
+      <div class="select" style="width: 100%;">
+        <select tabindex="-1" v-model="selectedRemote" style="width: 100%;">
+          <option disabled="disabled" value="">Select a remote repo</option>
+          <option v-for="(remote, idx) in remotes">
+            {{remote}}
+          </option>
+        </select>
+      </div>
+      <br />
+      <br />
+
+      <textarea class="textarea" style="width: 100%;" v-model="commitMessage" placeholder="What did you change?"
+        rows="4"></textarea><br />
+      <button v-on:click="commitAndPush" class="button is-success" style="width: 100%;">Commit and Push →</button>
+
+      <br />
+      <br />
+
+      <div style="opacity: 0.8; margin-bottom: 5px;">Staging
+        <strong>{{selectedFiles.length.toString()}}</strong>/<strong>{{filesForStaging.length.toString()}}</strong>
+        files or folders</div>
+      <!-- {{filesForStaging.length === 1 ? "file or folder" : "files or folders"}}</span> -->
+      <!-- <span style="opacity: 0.8;"> ready for staging</span> -->
+
+      <div class="columns is-mobile stagingBox" v-for="(file, idx) in filesForStaging" style="margin: 0px;">
+
+        <div class="column is-narrow" style="padding: 2px 5px;">
+          <input type="checkbox" tabindex="0" class="" v-bind:id="idx.toString()" v-bind:value="file.name" v-model="selectedFiles" />
+        </div>
+        <div class="column" style="overflow-x: scroll; padding: 2px 5px;">
+          <label tabindex="0" v-on:keyup.enter="toggleStaged(file.name)" v-bind:for="idx.toString()" class="checkbox">{{file.name}}</label>
+        </div>
+        <div class="column is-narrow" style="padding: 2px 5px;">
+          <span v-bind:title="file.descriptor" v-bind:style="{backgroundColor: file.color}"
+            class="tag">{{file.stage}}</span>
+        </div>
+
+      </div>
+      <br />
+      <button v-on:click="viewDiff" class="button is-danger is-light" style="width: 100%;">View Diff</button>
+      <br />
+
+
+      <!-- <ul style="list-style: none; padding-left: 0;">
+
+        <li v-for="(file, idx) in filesForStaging">
+          <input type="checkbox" class="" v-bind:id="idx.toString()" v-bind:value="file.name" v-model="selectedFiles" />
+          <span v-bind:title="file.descriptor" class="tag">{{file.stage}}</span>
+
+          <label v-bind:for="idx.toString()" class="checkbox">{{file.name}}</label>
+        </li>
+      </ul> -->
+
+
+      <br>
+
+      <h2 style="text-align: center;"><strong>Previous Commits</strong></h2>
+      <!-- 
+        hash: individualCommitArray[0],
+        authorName: individualCommitArray[1],
+        authorEmail: individualCommitArray[2],
+        timeRelative: individualCommitArray[3],
+        timeUnix: individualCommitArray[4],
+        message: individualCommitArray[5], -->
+
+      <!-- <ul class="timeline"> -->
+      <div v-for="(commit, idx) in commitHistory" class="commitBox" @mouseover="commit.hover = true"
+        @mouseleave="commit.hover = false">
+        <!-- style="border: 1px solid black; padding: 10px 5px; margin: 0 0 10px 0px; border-radius: 10px;"> -->
+
+        <!-- <div class="commitBox"> -->
+        <span>{{commit.message}}</span><br />
+        <span style="opacity: 0.75; font-size: 90%;">{{commit.authorName}} • {{commit.timeRelative}}</span><br />
+        <span style="opacity: 0.6; font-size: 75%;">{{commit.authorEmail}}</span><br />
+        <span style="opacity: 0.6; font-size: 75%;">{{commit.hash}}</span><br />
+        <button v-if="commit.hover" class="button is-danger is-light">Revert to here</button>
+
+
+      </div>
+
+    </div>
+
+
+  </div>
+</body>
+<script>
+  document.addEventListener('keydown', (e) => {
+  // console.log(e)
+  let key = String.fromCharCode(e.keyCode)
+  if ((e.metaKey) && (e.shiftKey) && (e.keyCode === 190)) {  //e.keyCode === 190
+    console.log("these keys were pressed")
+    app.showHidden = !app.showHidden
+    console.log(app.showHidden)
+    e.preventDefault();
+
+  }
+
+  console.log("check", e.metaKey, e.keyCode)
+
+  console.log((e.metaKey) && (e.keyCode === 79))
+
+  if ((e.metaKey) && (e.keyCode === 79)) {  //e.keyCode === 190
+      fig.run(`cd "${app.userPath}"`)
+      setTimeout(()=> {
+        fig.reposition("7")
+      },500)
+      e.preventDefault();
+
+  }
+});
+</script>
+
+</html>

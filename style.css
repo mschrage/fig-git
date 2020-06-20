@@ -1,0 +1,56 @@
+body {
+    margin: 10px
+}
+
+.commitBox {
+    border: 1px solid black; 
+    padding: 10px; 
+    border-radius: 10px;
+    margin: 15px 0px;
+}
+
+.commitBox:hover {
+    background-color: #f5f5f5;
+}
+
+.stagingBox:hover {
+    background-color: #f5f5f5;
+}
+
+
+/*  If I want to do a timeline effect, potentially use the below OR better: find a library */
+
+/* 
+ul.timeline {
+    list-style-type: none;
+    position: relative;
+}
+ul.timeline:before {
+    content: ' ';
+    background: #d4d9df;
+    display: inline-block;
+    position: absolute;
+    left: 5px;
+    top: 10px;
+    width: 2px;
+    height: 100%;
+    z-index: 400;
+}
+ul.timeline > li {
+    margin: 10px 0;
+    padding-left: 15px;
+}
+ul.timeline > li:before {
+    content: ' ';
+    background: white;
+    display: inline-block;
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid black;
+    left: 0px;
+    width: 10px;
+    height: 10px;
+    z-index: 400;
+}
+
+ */
